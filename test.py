@@ -19,7 +19,10 @@ from util.metric import Metric
 from util.utils import set_seed, CLASS_LABELS, get_bbox
 from config import ex
 
-
+'''
+使用 @ex.automain 装饰器定义了主函数 main，该函数将作为 Sacred 实验的入口点。
+在主函数中，首先保存实验所用到的源代码文件，并设置随机数种子、GPU 等环境参数。
+'''
 @ex.automain
 def main(_run, _config, _log):
     for source_file, _ in _run.experiment_info['sources']:
@@ -34,7 +37,7 @@ def main(_run, _config, _log):
     torch.cuda.set_device(device=_config['gpu_id'])
     torch.set_num_threads(1)
 
-
+    #创建模型
     _log.info('###### Create model ######')
     model = FewShotSeg(pretrained_path=_config['path']['init_path'], cfg=_config['model'])
     model = nn.DataParallel(model.cuda(), device_ids=[_config['gpu_id'],])
@@ -42,7 +45,7 @@ def main(_run, _config, _log):
         model.load_state_dict(torch.load(_config['snapshot'], map_location='cpu'))
     model.eval()
 
-
+    #准备数据
     _log.info('###### Prepare data ######')
     data_name = _config['dataset']
     if data_name == 'VOC':
@@ -59,7 +62,7 @@ def main(_run, _config, _log):
         transforms.append(DilateScribble(size=_config['scribble_dilation']))
     transforms = Compose(transforms)
 
-
+    #测试
     _log.info('###### Testing begins ######')
     metric = Metric(max_label=max_label, n_runs=_config['n_runs'])
     with torch.no_grad():

@@ -1,4 +1,4 @@
-"""Experiment Configuration"""
+"""用于配置深度学习实验的 Python 脚本"""
 import os
 import re
 import glob
@@ -8,19 +8,22 @@ import sacred
 from sacred import Experiment
 from sacred.observers import FileStorageObserver
 from sacred.utils import apply_backspaces_and_linefeeds
-
+#Sacred 设置
 sacred.SETTINGS['CONFIG']['READ_ONLY_CONFIG'] = False
 sacred.SETTINGS.CAPTURE_MODE = 'no'
 
+# 创建 Sacred 实验对象
 ex = Experiment('PANet')
 ex.captured_out_filter = apply_backspaces_and_linefeeds
 
+# 添加源文件到实验
 source_folders = ['.', './dataloaders', './models', './util']
 sources_to_save = list(itertools.chain.from_iterable(
     [glob.glob(f'{folder}/*.py') for folder in source_folders]))
 for source_file in sources_to_save:
     ex.add_source_file(source_file)
 
+# 配置默认参数
 @ex.config
 def cfg():
     """Default configurations"""
@@ -57,7 +60,7 @@ def cfg():
             'momentum': 0.9,
             'weight_decay': 0.0005,
         }
-
+    # 测试模式配置
     elif mode == 'test':
         notrain = False
         snapshot = './runs/PANet_VOC_sets_0_1way_1shot_[train]/1/snapshots/30000.pth'
@@ -94,25 +97,28 @@ def cfg():
     else:
         raise ValueError('Wrong configuration for "mode" !')
 
-
+    # 实验字符串表示
     exp_str = '_'.join(
         [dataset,]
         + [key for key, value in model.items() if value]
         + [f'sets_{label_sets}', f'{task["n_ways"]}way_{task["n_shots"]}shot_[{mode}]'])
 
-
+    # 路径配置
     path = {
         'log_dir': './runs',
         'init_path': './pretrained_model/vgg16-397923af.pth',
-        'VOC':{'data_dir': '../../data/Pascal/VOCdevkit/VOC2012/',
-               'data_split': 'trainaug',},
+        #'VOC':{'data_dir': '../../data/Pascal/VOCdevkit/VOC2012/',
+        #       'data_split': 'trainaug',},
+        'VOC': {'data_dir': '/media/fys/1e559c53-a2a9-468a-a638-74933f8e167c/lww/VOCdevkit/VOC2012',
+                'data_split': 'trainaug',},
         'COCO':{'data_dir': '../../data/COCO/',
                 'data_split': 'train',},
     }
-
+#配置观察者
 @ex.config_hook
 def add_observer(config, command_name, logger):
     """A hook fucntion to add observer"""
+    """添加观察者的钩子函数"""
     exp_name = f'{ex.path}_{config["exp_str"]}'
     if config['mode'] == 'test':
         if config['notrain']:
